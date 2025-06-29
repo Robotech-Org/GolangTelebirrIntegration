@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 )
 
@@ -34,7 +33,6 @@ type TokenResponse struct {
 
 func (a *ApplyFabricTokenService) ApplyFabricToken() (string, error) {
 	fullURL := a.BaseURL + "/payment/v1/token"
-	log.Printf("Full URL: %s", fullURL)
 	payload := map[string]string{
 		"appSecret": a.AppSecret,
 	}
@@ -78,7 +76,6 @@ func (a *ApplyFabricTokenService) ApplyFabricToken() (string, error) {
 	if tokenResponse.Token == "" {
 		return "", fmt.Errorf("API returned a successful status but the fabric token was empty. Check your FabricAppId and AppSecret.")
 	}
-	log.Printf("Fabric Token: %v", tokenResponse.Token)
 
 	return tokenResponse.Token, nil
 }

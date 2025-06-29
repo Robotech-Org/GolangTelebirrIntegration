@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 
@@ -85,7 +84,6 @@ func (s *CreateOrderService) requestCreateOrder(fabricToken, title, amount strin
 	fullURL := s.BaseURL + "/payment/v1/merchant/preOrder"
 
 	payload, err := s.createRequestObject(title, amount)
-	log.Printf("Payload in requestCreateOrder: %v", payload)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +107,6 @@ func (s *CreateOrderService) requestCreateOrder(fabricToken, title, amount strin
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		},
 	}
-	log.Printf("Request %v", req)
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -206,8 +203,6 @@ func (s *CreateOrderService) createWebCheckoutRawRequest(prepayID string) (strin
 		maps["timestamp"],
 		encodedSign,
 	)
-
-	log.Printf("Raw Request: %v", rawRequest)
 
 	return rawRequest, nil
 }
