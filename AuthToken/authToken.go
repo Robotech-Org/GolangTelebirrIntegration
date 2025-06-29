@@ -12,7 +12,7 @@ import (
 	"github.com/Robotech-Org/GolangTelebirrIntegration/utils"
 )
 
-// Auth token
+// === Auth token ===
 type AuthTokenResponse struct {
 	Code int    `json:"code"`
 	Msg  string `json:"msg"`

@@ -16,6 +16,7 @@ type ApplyFabricTokenService struct {
 	MerchantId  string
 }
 
+// === Applying Fabric Token ===
 func NewApplyFabricTokenService(baseURL, fabricAppId, appSecret, merchantId string) *ApplyFabricTokenService {
 	return &ApplyFabricTokenService{
 		BaseURL:     baseURL,

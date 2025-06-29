@@ -28,6 +28,7 @@ type PreOrderBizContent struct {
 	MerchOrderID string `json:"merch_order_id"`
 }
 
+// ===CreateOrderService===
 type CreateOrderService struct {
 	BaseURL                 string
 	WebBaseURL              string
