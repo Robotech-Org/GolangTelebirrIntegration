@@ -1,1 +1,1 @@
-# GolangTelebirrIntegration
+telebirr integration
