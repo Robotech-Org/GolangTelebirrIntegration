@@ -1,1 +1,1 @@
-package golangtelebirrintegration
+package GolangTelebirrIntegration
