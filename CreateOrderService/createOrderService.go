@@ -1,4 +1,4 @@
-package createorderservice
+package CreateOrderService
 
 import (
 	"bytes"
