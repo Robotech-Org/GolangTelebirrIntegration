@@ -15,35 +15,24 @@ import (
 	"github.com/google/uuid"
 )
 
-// CreateTimestamp generates a timestamp in seconds, matching the Python reference.
 func CreateTimestamp() string {
 	return fmt.Sprintf("%d", time.Now().Unix())
 }
 
-// CreateNonceStr generates a random UUID string.
-// Note: Python uses uuid1 (time-based), Go uses uuid.New() (v4, random).
-// This is generally acceptable and unlikely to be the source of an error.
 func CreateNonceStr() string {
 	return uuid.New().String()
 }
 
-// CreateMerchantOrderID generates an order ID from the Unix timestamp in SECONDS.
 func CreateMerchantOrderID() string {
-	// CHANGE: Was time.Now().UnixNano(), which is incorrect. Must be seconds.
 	return fmt.Sprintf("%d", time.Now().Unix())
 }
 
-// SignRequestObject prepares the canonical string and signs it using RSA-PSS.
 func SignRequestObject(req map[string]any, privateKeyBase64 string) (string, error) {
-	// 1. Create the canonical string to be signed.
 	unsignedString, err := createCanonicalString(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to create canonical string: %w", err)
 	}
 
-	fmt.Printf("--- Canonical String to be Signed ---\n%s\n-------------------------------------\n", unsignedString)
-
-	// 2. Sign the string using the corrected RSA-PSS function.
 	signedString, err := signWithRSA_PSS(unsignedString, privateKeyBase64)
 	if err != nil {
 		return "", fmt.Errorf("failed to sign data with RSA-PSS: %w", err)
@@ -51,15 +40,12 @@ func SignRequestObject(req map[string]any, privateKeyBase64 string) (string, err
 	return signedString, nil
 }
 
-// signWithRSA_PSS signs data using the RSA-PSS padding scheme to match the Python reference.
 func signWithRSA_PSS(data string, privateKeyPEM string) (string, error) {
-	// CHANGE: Use standard Base64 decoding for better compatibility.
 	privateKeyDER, err := base64.StdEncoding.DecodeString(privateKeyPEM)
 	if err != nil {
 		return "", fmt.Errorf("failed to decode private key: %w", err)
 	}
 
-	// Key parsing logic is robust and can remain as is.
 	var key *rsa.PrivateKey
 	pkcs8Key, err := x509.ParsePKCS8PrivateKey(privateKeyDER)
 	if err == nil {
@@ -85,7 +71,6 @@ func signWithRSA_PSS(data string, privateKeyPEM string) (string, error) {
 	}
 
 	signedString := base64.StdEncoding.EncodeToString(signature)
-	fmt.Printf("--- Generated Signature (Base64) ---\n%s\n------------------------------------\n", signedString)
 	return signedString, nil
 }
 
@@ -114,7 +99,6 @@ func createCanonicalString(req map[string]any) (string, error) {
 		}
 	}
 
-	// This is the full logic from the Python example: flatten, sort, join.
 	keys := make([]string, 0, len(flatParams))
 	for k := range flatParams {
 		keys = append(keys, k)
