@@ -7,7 +7,10 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/pem"
+	"errors"
 	"fmt"
+	"reflect"
 	"sort"
 	"strings"
 	"time"
@@ -116,4 +119,84 @@ func createCanonicalString(req map[string]any) (string, error) {
 	}
 
 	return stringBuilder.String(), nil
+}
+
+func VerifyNotificationSignature(notificationData map[string]any, telebirrPublicKeyPEM string) error {
+	sign, ok := notificationData["sign"].(string)
+	if !ok || sign == "" {
+		return errors.New("signature is missing from notification data")
+	}
+	delete(notificationData, "sign")
+	delete(notificationData, "sign_type")
+
+	keys := make([]string, 0, len(notificationData))
+	for k := range notificationData {
+		if v := notificationData[k]; v != nil && v != "" {
+			keys = append(keys, k)
+		}
+	}
+	sort.Strings(keys)
+
+	var builder strings.Builder
+	for i, k := range keys {
+		val := fmt.Sprintf("%v", notificationData[k])
+		builder.WriteString(k)
+		builder.WriteString("=")
+		builder.WriteString(val)
+		if i < len(keys)-1 {
+			builder.WriteString("&")
+		}
+	}
+	canonicalString := builder.String()
+	fmt.Printf("Canonical String for Verification: %s\n", canonicalString)
+
+	block, _ := pem.Decode([]byte(telebirrPublicKeyPEM))
+	if block == nil {
+		return errors.New("failed to parse PEM block containing the public key")
+	}
+	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return fmt.Errorf("failed to parse public key: %w", err)
+	}
+	rsaPub, ok := pub.(*rsa.PublicKey)
+	if !ok {
+		return errors.New("key is not a valid RSA public key")
+	}
+
+	decodedSign, err := base64.StdEncoding.DecodeString(sign)
+	if err != nil {
+		return fmt.Errorf("failed to decode base64 signature: %w", err)
+	}
+
+	hashed := sha256.Sum256([]byte(canonicalString))
+
+	err = rsa.VerifyPKCS1v15(rsaPub, crypto.SHA256, hashed[:], decodedSign)
+	if err != nil {
+		return fmt.Errorf("signature verification failed: %w", err)
+	}
+
+	return nil
+}
+
+func StructToMap(data any) (map[string]any, error) {
+	out := make(map[string]any)
+	v := reflect.ValueOf(data)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+
+	if v.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("StructToMap only accepts structs; got %T", v)
+	}
+
+	typ := v.Type()
+	for i := 0; i < v.NumField(); i++ {
+		fi := typ.Field(i)
+		jsonTag := fi.Tag.Get("json")
+		if jsonTag != "" && jsonTag != "-" {
+			// Use the json tag name as the map key
+			out[jsonTag] = v.Field(i).Interface()
+		}
+	}
+	return out, nil
 }

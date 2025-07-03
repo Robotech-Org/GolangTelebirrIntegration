@@ -145,7 +145,7 @@ func (s *CreateOrderService) createRequestObject(title, amount string) (map[stri
 	}
 
 	biz := map[string]any{
-		"notify_url":            "https://www.google.com",
+		"notify_url":            s.NotifyPath,
 		"redirect_url":          s.ReturnURL,
 		"trade_type":            "Checkout",
 		"appid":                 s.MerchantID,
