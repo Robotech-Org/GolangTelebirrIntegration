@@ -14,16 +14,38 @@ type ApplyFabricTokenService struct {
 	FabricAppId string
 	AppSecret   string
 	MerchantId  string
+	Client      *http.Client
+}
+
+type Option func(*ApplyFabricTokenService)
+
+func WithClient(client *http.Client) Option {
+	return func(s *ApplyFabricTokenService) {
+		if client != nil {
+			s.Client = client
+		}
+	}
 }
 
 // === Applying Fabric Token ===
-func NewApplyFabricTokenService(baseURL, fabricAppId, appSecret, merchantId string) *ApplyFabricTokenService {
-	return &ApplyFabricTokenService{
+func NewApplyFabricTokenService(baseURL, fabricAppId, appSecret, merchantId string, opts ...Option) *ApplyFabricTokenService {
+	defaultTransport := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	defaultClient := &http.Client{Transport: defaultTransport}
+
+	service := &ApplyFabricTokenService{
 		BaseURL:     baseURL,
 		FabricAppId: fabricAppId,
 		AppSecret:   appSecret,
 		MerchantId:  merchantId,
+		Client:      defaultClient, // Set the default client
 	}
+
+	for _, opt := range opts {
+		opt(service)
+	}
+	return service
 }
 
 type TokenResponse struct {
@@ -50,12 +72,7 @@ func (a *ApplyFabricTokenService) ApplyFabricToken() (string, error) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-APP-Key", a.FabricAppId)
 
-	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-	client := &http.Client{Transport: transport}
-
-	resp, err := client.Do(req)
+	resp, err := a.Client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to send request: %w", err)
 	}
