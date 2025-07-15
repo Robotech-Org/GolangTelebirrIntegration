@@ -39,13 +39,28 @@ type CreateOrderService struct {
 	PrivateKeyPEM           string
 	ReturnURL               string
 	ApplyFabricTokenService *ApplyFabricToken.ApplyFabricTokenService
+	Client                  *http.Client
+}
+
+type Option func(*CreateOrderService)
+
+func WithClient(client *http.Client) Option {
+	return func(s *CreateOrderService) {
+		if client != nil {
+			s.Client = client
+		}
+	}
 }
 
 func NewCreateOrderService(
 	baseURL, webBaseURL, fabricID, merchantID, merchantCode, notifyPath, privateKeyPEM, returnURL string,
-	applyFabricTokenService *ApplyFabricToken.ApplyFabricTokenService,
+	applyFabricTokenService *ApplyFabricToken.ApplyFabricTokenService, opts ...Option,
 ) *CreateOrderService {
-	return &CreateOrderService{
+	defaultTransport := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	defaultClient := &http.Client{Transport: defaultTransport}
+	service := &CreateOrderService{
 		BaseURL:                 baseURL,
 		WebBaseURL:              webBaseURL,
 		FabricID:                fabricID,
@@ -55,7 +70,13 @@ func NewCreateOrderService(
 		PrivateKeyPEM:           privateKeyPEM,
 		ReturnURL:               returnURL,
 		ApplyFabricTokenService: applyFabricTokenService,
+		Client:                  defaultClient,
 	}
+	for _, opt := range opts {
+		opt(service)
+	}
+
+	return service
 }
 
 func (s *CreateOrderService) CreateOrder(title, amount string) (string, error) {
@@ -103,13 +124,7 @@ func (s *CreateOrderService) requestCreateOrder(fabricToken, title, amount strin
 	req.Header.Set("X-APP-Key", s.FabricID)
 	req.Header.Set("Authorization", fabricToken)
 
-	client := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	}
-
-	resp, err := client.Do(req)
+	resp, err := s.Client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send pre-order request: %w", err)
 	}
